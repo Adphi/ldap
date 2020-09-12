@@ -42,8 +42,54 @@ func Marshal(v interface{}) (*Entry, error) {
 	return (&encoder{}).Encode(v)
 }
 
+func MarshalSlice(v interface{}) ([]*Entry, error) {
+	if v == nil {
+		return nil, errors.New("v is nil")
+	}
+	vv := reflect.ValueOf(v)
+	if vv.Kind() != reflect.Slice {
+		return nil, errors.New("v is not a slice pointer")
+	}
+	var out []*Entry
+	for i := 0; i < vv.Len(); i++ {
+		e, err := Marshal(vv.Index(i).Interface())
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, e)
+	}
+	return out, nil
+}
+
 func Unmarshal(e *Entry, v interface{}) error {
 	return (&decoder{e}).Decode(v)
+}
+
+func UnmarshalSlice(entries []*Entry, v interface{}) error {
+	if v == nil {
+		return errors.New("v is nil")
+	}
+	t := reflect.TypeOf(v)
+	if t.Kind() != reflect.Ptr {
+		return ErrNotPointer
+	}
+	t = t.Elem()
+	if t.Kind() != reflect.Slice {
+		return errors.New("v is not a slice pointer")
+	}
+	vv := reflect.ValueOf(v).Elem()
+	for _, e := range entries {
+		ev := reflect.New(t.Elem())
+		if err := Unmarshal(e, ev.Interface()); err != nil {
+			return err
+		}
+		if t.Elem().Kind() == reflect.Ptr {
+			vv.Set(reflect.Append(vv, ev))
+		} else {
+			vv.Set(reflect.Append(vv, ev.Elem()))
+		}
+	}
+	return nil
 }
 
 type BinaryEncoder interface {

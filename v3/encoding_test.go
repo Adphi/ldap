@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 type test struct {
@@ -64,6 +65,7 @@ type TypesAll struct {
 	Bool          bool
 	BoolPtr       *bool  `ldap:"boolPtr"`
 	Other         string `ldap:"-"`
+	time          time.Time
 }
 
 var (

@@ -319,17 +319,17 @@ func Test_addControlDescriptions(t *testing.T) {
 }
 
 func TestListUsersUnmarshal(t *testing.T) {
-	type user struct {
+	type mailGroup struct {
 		DN                   string `ldap:"dn"`
 		CN                   string `ldap:"cn"`
-		Owner                string
-		AssociatedDomain     string
+		Owner                string `ldap:"owner,omitempty"`
+		AssociatedDomain     string `ldap:"associatedDomain,omitempty"`
 		ObjectClass          []string
 		SuppressNoEmailError bool
 		Joinable             bool
 		RFC822mail           string `ldap:"rfc822mail"`
-		realtimeBlockList    bool
-		Description          string
+		RealtimeBlockList    bool
+		Description          string `ldap:"description,omitempty"`
 	}
 	l, err := DialURL(ldapServer)
 	if err != nil {
@@ -349,11 +349,16 @@ func TestListUsersUnmarshal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, entry := range sr.Entries {
-		u := &user{}
-		if err := Unmarshal(entry, u); err != nil {
-			t.Fatal(err)
-		}
-		fmt.Printf("%+v\n", u)
+	var mailGroups []mailGroup
+
+	if err := UnmarshalSlice(sr.Entries, &mailGroups); err != nil {
+		t.Fatal(err)
+	}
+	for _, g := range mailGroups {
+		fmt.Printf("%+v\n", g)
+	}
+	_, err = MarshalSlice(mailGroups)
+	if err != nil {
+		t.Fatal(err)
 	}
 }

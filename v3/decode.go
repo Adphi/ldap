@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 )
 
@@ -133,8 +134,19 @@ func setValue(v reflect.Value, a string) (err error) {
 		v.SetBool(strings.ToUpper(a) == "TRUE")
 		return nil
 	}
-	if _, ok := v.Interface().([]byte); ok {
+	switch v.Interface().(type) {
+	case []byte:
 		v.Set(reflect.ValueOf([]byte(a)))
+	case time.Time:
+		// TODO(adphi): find better time format resolution
+		var t time.Time
+		if _, err := strconv.Atoi(a); err == nil {
+			t = decodeTime(a)
+		} else {
+			// assume DateTime
+			t = decodeDateTime(a)
+		}
+		v.Set(reflect.ValueOf(t))
 	}
 	if v.Kind() == reflect.Ptr {
 		return setValue(v.Elem(), a)
@@ -149,4 +161,25 @@ func getAttributeValues(e *Entry, attribute string) ([]string, bool) {
 		}
 	}
 	return nil, false
+}
+
+func decodeTime(s string) time.Time {
+	layout := "20060102150405.0Z"
+	t, err := time.Parse(layout, s)
+	if err != nil {
+		return time.Time{}
+	}
+	return t
+}
+
+func decodeDateTime(t string) time.Time {
+	nsec := int64(atoi(t))
+	nsec -= 116444736000000000
+	nsec *= 100
+	return time.Unix(0, nsec).Truncate(time.Second).UTC()
+}
+
+func atoi(s string) int {
+	i, _ := strconv.Atoi(s)
+	return i
 }
