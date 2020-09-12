@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 type decoder struct {
@@ -40,6 +41,9 @@ func decodeStruct(e *Entry, v reflect.Value, t reflect.Type) error {
 	for i := 0; i < v.NumField(); i++ {
 		fv := v.Field(i)
 		ft := t.Field(i)
+		if !unicode.IsUpper(rune(ft.Name[0]))  {
+			continue
+		}
 		info := parseTag(ft)
 		if info.ignored {
 			continue
@@ -124,6 +128,9 @@ func setValue(v reflect.Value, a string) (err error) {
 		return nil
 	case reflect.String:
 		v.SetString(a)
+		return nil
+	case reflect.Bool:
+		v.SetBool(strings.ToUpper(a) == "TRUE")
 		return nil
 	}
 	if _, ok := v.Interface().([]byte); ok {

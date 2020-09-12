@@ -31,7 +31,7 @@ type TypeTags struct {
 
 type binaryEncoder struct {
 	wantErr bool
-	Value string
+	Value   string
 }
 
 func (e *binaryEncoder) Encode() ([]byte, error) {
@@ -61,6 +61,8 @@ type TypesAll struct {
 	RawSlice      [][]byte `ldap:"multiRaw,omitempty"`
 	RawSlice2     [][]byte
 	BinaryEncoder *binaryEncoder
+	Bool          bool
+	BoolPtr       *bool  `ldap:"boolPtr"`
 	Other         string `ldap:"-"`
 }
 
@@ -188,8 +190,8 @@ var (
 					t.Fail()
 					return
 				}
-				if len(as) != 8 {
-					t.Errorf("expected 9 attribute, got %d", len(as))
+				if len(as) != 10 {
+					t.Errorf("expected 10 attribute, got %d", len(as))
 				}
 			},
 		},
@@ -297,6 +299,7 @@ var (
 			fn: func(t *testing.T) {
 				f := math.MaxFloat64
 				s := "string pointer"
+				b := false
 				want := &TypesAll{
 					DN:            dn,
 					Int16:         4,
@@ -308,6 +311,8 @@ var (
 					Raw:           []byte("one"),
 					RawSlice:      [][]byte{[]byte("one"), []byte("two"), []byte("three")},
 					BinaryEncoder: &binaryEncoder{Value: "whatever"},
+					Bool:          true,
+					BoolPtr:       &b,
 				}
 				got := &TypesAll{}
 				err := Unmarshal(&Entry{
@@ -322,6 +327,8 @@ var (
 						NewEntryAttribute("singleRaw", []string{"one"}),
 						NewEntryAttribute("multiRaw", []string{"one", "two", "three"}),
 						NewEntryAttribute("binaryEncoder", []string{"whatever"}),
+						NewEntryAttribute("bool", []string{"TRUE"}),
+						NewEntryAttribute("boolPtr", []string{"FALSE"}),
 					},
 				}, got)
 				if err != nil {

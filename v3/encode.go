@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"unicode"
 )
 
 type encoder struct{}
@@ -42,6 +43,9 @@ func encodeStructFields(v reflect.Value, t reflect.Type) (attrs []*EntryAttribut
 	for i := 0; i < v.NumField(); i++ {
 		fv := v.Field(i)
 		ft := t.Field(i)
+		if !unicode.IsUpper(rune(ft.Name[0]))  {
+			continue
+		}
 		info := parseTag(ft)
 		if info.ignored {
 			continue
@@ -123,6 +127,12 @@ func encodeField(attrName string, fv reflect.Value, omitEmpty bool) (attr *Entry
 		attr = NewEntryAttribute(attrName, []string{f})
 	case []byte:
 		attr = NewEntryAttribute(attrName, []string{string(f)})
+	case bool:
+		if f {
+			attr = NewEntryAttribute(attrName, []string{"TRUE"})
+		} else {
+			attr = NewEntryAttribute(attrName, []string{"FALSE"})
+		}
 	}
 	if attr != nil {
 		return

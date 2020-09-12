@@ -2,6 +2,8 @@ package ldap
 
 import (
 	"crypto/tls"
+	"fmt"
+	"log"
 	"testing"
 
 	ber "github.com/go-asn1-ber/asn1-ber"
@@ -313,5 +315,45 @@ func Test_addControlDescriptions(t *testing.T) {
 				t.Errorf("addControlDescriptions() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestListUsersUnmarshal(t *testing.T) {
+	type user struct {
+		DN                   string `ldap:"dn"`
+		CN                   string `ldap:"cn"`
+		Owner                string
+		AssociatedDomain     string
+		ObjectClass          []string
+		SuppressNoEmailError bool
+		Joinable             bool
+		RFC822mail           string `ldap:"rfc822mail"`
+		realtimeBlockList    bool
+		Description          string
+	}
+	l, err := DialURL(ldapServer)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer l.Close()
+
+	searchRequest := NewSearchRequest(
+		baseDN,
+		ScopeWholeSubtree, NeverDerefAliases, 0, 0, false,
+		filter[2],
+		nil,
+		nil,
+	)
+
+	sr, err := l.Search(searchRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range sr.Entries {
+		u := &user{}
+		if err := Unmarshal(entry, u); err != nil {
+			t.Fatal(err)
+		}
+		fmt.Printf("%+v\n", u)
 	}
 }
