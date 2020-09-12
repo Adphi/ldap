@@ -13,8 +13,8 @@ var (
 	ErrUnsupportedType   = errors.New("unsupported type")
 	ErrNoDN              = errors.New("no DN found")
 
-	DefaultEncoder Encoder = &encoder{}
-	DefaultDecoder Decoder = &decoder{}
+	DefaultEncoder Encoder = &encoder{useInterface: true}
+	DefaultDecoder Decoder = &decoder{useInterface: true}
 )
 
 type Marshaler interface {
