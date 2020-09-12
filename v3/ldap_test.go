@@ -318,7 +318,7 @@ func Test_addControlDescriptions(t *testing.T) {
 	}
 }
 
-func TestListUsersUnmarshal(t *testing.T) {
+func TestListUnmarshal(t *testing.T) {
 	type mailGroup struct {
 		DN                   string `ldap:"dn"`
 		CN                   string `ldap:"cn"`
@@ -349,7 +349,7 @@ func TestListUsersUnmarshal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var mailGroups []mailGroup
+	var mailGroups []*mailGroup
 
 	if err := UnmarshalSlice(sr.Entries, &mailGroups); err != nil {
 		t.Fatal(err)

@@ -10,15 +10,15 @@ import (
 )
 
 type decoder struct {
-	e *Entry
+	useInterface bool
 }
 
-func (d *decoder) Decode(v interface{}) error {
+func (d *decoder) Decode(e *Entry, v interface{}) error {
 	if v == nil {
 		return errors.New("cannot decode to nil value")
 	}
-	if m, ok := v.(Unmarshaler); ok {
-		return m.UnmarshalLDAP()
+	if m, ok := v.(Unmarshaler); ok && d.useInterface {
+		return m.UnmarshalLDAP(e)
 	}
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr {
@@ -32,7 +32,7 @@ func (d *decoder) Decode(v interface{}) error {
 		return ErrNoDN
 	}
 	rt := rv.Type()
-	if err := decodeStruct(d.e, rv, rt); err != nil {
+	if err := decodeStruct(e, rv, rt); err != nil {
 		return err
 	}
 	return nil
@@ -105,6 +105,10 @@ func setValue(v reflect.Value, a string) (err error) {
 		err = f.Decode([]byte(a))
 		return
 	}
+	if f, ok := v.Addr().Interface().(BinaryDecoder); ok {
+		err = f.Decode([]byte(a))
+		return
+	}
 	switch v.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		i, err := strconv.ParseInt(a, 10, 64)
@@ -141,10 +145,10 @@ func setValue(v reflect.Value, a string) (err error) {
 		// TODO(adphi): find better time format resolution
 		var t time.Time
 		if _, err := strconv.Atoi(a); err == nil {
-			t = decodeTime(a)
+			t = decodeDateTime(a)
 		} else {
 			// assume DateTime
-			t = decodeDateTime(a)
+			t = decodeTime(a)
 		}
 		v.Set(reflect.ValueOf(t))
 	}

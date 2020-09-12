@@ -12,6 +12,9 @@ var (
 	ErrUnsupportedDNType = errors.New("unsupported DN type")
 	ErrUnsupportedType   = errors.New("unsupported type")
 	ErrNoDN              = errors.New("no DN found")
+
+	DefaultEncoder Encoder = &encoder{}
+	DefaultDecoder Decoder = &decoder{}
 )
 
 type Marshaler interface {
@@ -19,27 +22,27 @@ type Marshaler interface {
 }
 
 type Unmarshaler interface {
-	UnmarshalLDAP() error
+	UnmarshalLDAP(e *Entry) error
 }
 
 type Encoder interface {
 	Encode(v interface{}) (*Entry, error)
 }
 
-func NewEncoder() Encoder {
-	return &encoder{}
+func NewEncoder(useInterface bool) Encoder {
+	return &encoder{useInterface: useInterface}
 }
 
 type Decoder interface {
-	Decode(v interface{}) error
+	Decode(e *Entry, v interface{}) error
 }
 
-func NewDecoder(e *Entry) Decoder {
-	return &decoder{e: e}
+func NewDecoder(useInterface bool) Decoder {
+	return &decoder{useInterface: useInterface}
 }
 
 func Marshal(v interface{}) (*Entry, error) {
-	return (&encoder{}).Encode(v)
+	return DefaultEncoder.Encode(v)
 }
 
 func MarshalSlice(v interface{}) ([]*Entry, error) {
@@ -62,7 +65,7 @@ func MarshalSlice(v interface{}) ([]*Entry, error) {
 }
 
 func Unmarshal(e *Entry, v interface{}) error {
-	return (&decoder{e}).Decode(v)
+	return DefaultDecoder.Decode(e, v)
 }
 
 func UnmarshalSlice(entries []*Entry, v interface{}) error {
@@ -79,7 +82,12 @@ func UnmarshalSlice(entries []*Entry, v interface{}) error {
 	}
 	vv := reflect.ValueOf(v).Elem()
 	for _, e := range entries {
-		ev := reflect.New(t.Elem())
+		var ev reflect.Value
+		if t.Elem().Kind() == reflect.Ptr {
+			ev = reflect.New(t.Elem().Elem())
+		} else {
+			ev = reflect.New(t.Elem())
+		}
 		if err := Unmarshal(e, ev.Interface()); err != nil {
 			return err
 		}
@@ -104,6 +112,7 @@ type info struct {
 	attrName  string
 	ignored   bool
 	omitempty bool
+	readOnly  bool
 }
 
 func parseTag(sf reflect.StructField) info {
@@ -132,6 +141,9 @@ func parseTag(sf reflect.StructField) info {
 		if strings.TrimSpace(v) == "omitempty" {
 			fi.omitempty = true
 		}
+		if strings.TrimSpace(v) == "ro" {
+			fi.readOnly = true
+		}
 	}
 	return fi
 }
@@ -149,7 +161,7 @@ func hasDN(v reflect.Value) bool {
 		if info.attrName == "dn" {
 			return true
 		}
-		if ft.Anonymous && hasDN(v.Field(i)){
+		if ft.Anonymous && hasDN(v.Field(i)) {
 			return true
 		}
 	}

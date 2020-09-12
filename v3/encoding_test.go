@@ -61,7 +61,7 @@ type TypesAll struct {
 	Raw           []byte   `ldap:"singleRaw"`
 	RawSlice      [][]byte `ldap:"multiRaw,omitempty"`
 	RawSlice2     [][]byte
-	BinaryEncoder *binaryEncoder
+	BinaryEncoder binaryEncoder
 	Bool          bool
 	BoolPtr       *bool  `ldap:"boolPtr"`
 	Other         string `ldap:"-"`
@@ -175,7 +175,7 @@ var (
 					StringSlice:   []string{"one"},
 					Raw:           nil,
 					RawSlice:      nil,
-					BinaryEncoder: &binaryEncoder{},
+					BinaryEncoder: binaryEncoder{},
 					Other:         "",
 				})
 				if err != nil {
@@ -312,7 +312,7 @@ var (
 					StringSlice:   []string{"one", "two", "three"},
 					Raw:           []byte("one"),
 					RawSlice:      [][]byte{[]byte("one"), []byte("two"), []byte("three")},
-					BinaryEncoder: &binaryEncoder{Value: "whatever"},
+					BinaryEncoder: binaryEncoder{Value: "whatever"},
 					Bool:          true,
 					BoolPtr:       &b,
 				}

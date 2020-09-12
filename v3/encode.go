@@ -8,13 +8,15 @@ import (
 	"unicode"
 )
 
-type encoder struct{}
+type encoder struct{
+	useInterface bool
+}
 
 func (e *encoder) Encode(v interface{}) (*Entry, error) {
 	if v == nil {
 		return nil, errors.New("v is nil")
 	}
-	if m, ok := v.(Marshaler); ok {
+	if m, ok := v.(Marshaler); ok && e.useInterface {
 		return m.MarshalLDAP()
 	}
 	rv := reflect.ValueOf(v)
@@ -47,7 +49,7 @@ func encodeStructFields(v reflect.Value, t reflect.Type) (attrs []*EntryAttribut
 			continue
 		}
 		info := parseTag(ft)
-		if info.ignored {
+		if info.ignored || info.readOnly {
 			continue
 		}
 		if fv.IsZero() && strings.ToLower(info.attrName) != "dn" {
@@ -135,6 +137,15 @@ func encodeField(attrName string, fv reflect.Value, omitEmpty bool) (attr *Entry
 		}
 	}
 	if attr != nil {
+		return
+	}
+	if e, ok := fv.Addr().Interface().(BinaryEncoder); ok {
+		var b []byte
+		b, err = e.Encode()
+		if err != nil {
+			return
+		}
+		attr = NewEntryAttribute(attrName, []string{string(b)})
 		return
 	}
 	if fv.Kind() == reflect.Slice {
